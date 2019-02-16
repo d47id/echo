@@ -5,4 +5,6 @@ Requirements:
 * Logging
 * Liveness and readiness http endpoints
 * Working gRPC "echo" service
+* gRPC reflection
+* OpenTracing header propagation
 * Graceful shutdown
