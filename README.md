@@ -3,8 +3,9 @@ The goal of this project is to serve as a boilerplate starting point for writing
 Requirements:
 * Configuration via file
 * Logging
+* Graceful shutdown
 * Liveness and readiness http endpoints
 * Working gRPC "echo" service
 * gRPC reflection
 * OpenTracing header propagation
-* Graceful shutdown
+* Config reload via SIGHUP
