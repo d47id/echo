@@ -2,14 +2,16 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
+
+	"github.com/d47id/echo/lifecycle"
 
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 )
 
 type config struct {
-	DevelopmentLogger bool `yaml:"DevelopmentLogger"`
 }
 
 func main() {
@@ -19,9 +21,19 @@ func main() {
 		"echo.yaml",
 		"Path to yaml config file",
 	)
+	httpPort := flag.Int(
+		"http-port",
+		3000,
+		"Port on which to expose liveness, readiness, and version info endpoints",
+	)
+	devLogger := flag.Bool(
+		"dev-logger",
+		false,
+		"Use development logger",
+	)
 	flag.Parse()
 
-	// Read config
+	// Load config
 	data, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		panic(err)
@@ -31,7 +43,7 @@ func main() {
 
 	// Create logger
 	var logger *zap.Logger
-	if cfg.DevelopmentLogger {
+	if *devLogger {
 		logger, err = zap.NewDevelopment()
 	} else {
 		logger, err = zap.NewProduction()
@@ -43,6 +55,25 @@ func main() {
 
 	logger.Info(
 		"Starting up...",
-		zap.Bool("DevelopmentLogger", cfg.DevelopmentLogger),
+		zap.String("config-file", *configPath),
+		zap.Int("http-port", *httpPort),
+		zap.Bool("dev-logger", *devLogger),
 	)
+
+	// Create lifecycle manager
+	mgr := lifecycle.New(logger.Sugar(), nil)
+
+	// Start http server
+	cancel := mgr.StartServer(fmt.Sprintf(":%d", *httpPort))
+	defer cancel()
+
+	// Start gRPC server
+	// NOT IMPLEMENTED
+
+	// Set ready, healthy
+	mgr.Healthy()
+	mgr.Ready()
+
+	//wait for signals
+	mgr.WaitForSignals()
 }
