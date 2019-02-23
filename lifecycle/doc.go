@@ -31,7 +31,7 @@
 // The server also exposes version information at /version. The intention is to
 // override the values of Version, BuildTime, Branch, and Commit by passing -X
 // arguments to -ldflags when the application is built:
-//   go build -o app -ldflags "-s -w -X lifecycle.Version=${HASH} -X main.BuildTime=${BUILD_TIME}"
+//   go build -ldflags "-s -w -X lifecycle.Version=${HASH} -X main.BuildTime=${BUILD_TIME}"
 // Any values not overridden will return as "unset".
 //
 // As you build your application's dependencies in func main(), push functions
