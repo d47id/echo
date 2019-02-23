@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package api;
 
+//meaningless comment
 service Echo {
 	rpc Shout(ShoutRequest) returns (ShoutReply) {}
 }

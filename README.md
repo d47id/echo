@@ -5,6 +5,7 @@ Requirements:
 * Logging
 * Graceful shutdown
 * Liveness and readiness http endpoints
+* Prometheus metrics
 * Working gRPC "echo" service
 * gRPC reflection
 * OpenTracing header propagation

@@ -7,12 +7,12 @@ import "sync"
 // the system Ready or NotReady and Healthy or NotHealthy. It also contains
 // a mechanism to block waiting for OS signals and optionally reload config.
 type Manager struct {
-	ready        bool
-	rmx          *sync.Mutex
-	healthy      bool
-	hmx          *sync.Mutex
-	configReload func()
-	l            Logger
+	ready      bool
+	rmx        *sync.Mutex
+	healthy    bool
+	hmx        *sync.Mutex
+	reloadFunc func()
+	l          Logger
 }
 
 // Logger is the interface the lifecycle package uses to log. It was designed
@@ -26,11 +26,11 @@ type Logger interface {
 // New returns a new Manager ready to be used. Logger is not optional
 // and must be provided. ReloadFunc is optional, and if provided, will
 // be invoked whenever SIGHUP is trapped after invoking WaitForSignals()
-func New(logger Logger, ReloadFunc func()) *Manager {
+func New(logger Logger, reloadFunc func()) *Manager {
 	return &Manager{
-		rmx:          &sync.Mutex{},
-		hmx:          &sync.Mutex{},
-		configReload: ReloadFunc,
-		l:            logger,
+		rmx:        &sync.Mutex{},
+		hmx:        &sync.Mutex{},
+		reloadFunc: reloadFunc,
+		l:          logger,
 	}
 }
