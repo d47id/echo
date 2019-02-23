@@ -4,10 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 
+	"github.com/d47id/echo/api"
+	"github.com/d47id/echo/impl"
 	"github.com/d47id/echo/lifecycle"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -21,9 +26,14 @@ func main() {
 		"echo.yaml",
 		"Path to yaml config file",
 	)
+	grpcPort := flag.Int(
+		"grpc-port",
+		3000,
+		"Port on which to expose gRPC services",
+	)
 	httpPort := flag.Int(
 		"http-port",
-		3000,
+		4000,
 		"Port on which to expose liveness, readiness, and version info endpoints",
 	)
 	devLogger := flag.Bool(
@@ -56,6 +66,7 @@ func main() {
 	logger.Info(
 		"Starting up...",
 		zap.String("config-file", *configPath),
+		zap.Int("grpc-port", *grpcPort),
 		zap.Int("http-port", *httpPort),
 		zap.Bool("dev-logger", *devLogger),
 	)
@@ -64,11 +75,40 @@ func main() {
 	mgr := lifecycle.New(logger.Sugar(), nil)
 
 	// Start http server
-	cancel := mgr.StartServer(fmt.Sprintf(":%d", *httpPort))
+	cancel := mgr.StartServer(fmt.Sprintf(":%d", *httpPort), false)
 	defer cancel()
 
+	// Start tcp listener
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *grpcPort))
+	if err != nil {
+		panic(err)
+	}
+	logger.Info(
+		"tcp listener open",
+		zap.String("address", lis.Addr().String()),
+	)
+
+	defer func(l *zap.Logger, lis net.Listener) {
+		lis.Close()
+		l.Info("tcp listener closed")
+	}(logger, lis)
+
 	// Start gRPC server
-	// NOT IMPLEMENTED
+	s := grpc.NewServer()
+	api.RegisterEchoServer(s, &impl.EchoImpl{})
+	reflection.Register(s)
+	go func(l *zap.Logger, lis net.Listener, s *grpc.Server) {
+		err := s.Serve(lis)
+		if err != nil {
+			l.Error(err.Error())
+		}
+	}(logger, lis, s)
+	logger.Info("gRPC server started")
+
+	defer func(l *zap.Logger, s *grpc.Server) {
+		s.GracefulStop()
+		l.Info("gRPC server stopped")
+	}(logger, s)
 
 	// Set ready, healthy
 	mgr.Healthy()

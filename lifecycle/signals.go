@@ -7,8 +7,8 @@ import (
 )
 
 // WaitForSignals blocks until the process recieves SIGINT, SIGTERM, or
-// SIGHUP. If SIGINT or SIGTERM is received, the process will exit grace-
-// fully. If SIGHUP is received and a ReloadFunc was passed to New(),
+// SIGHUP. If SIGINT or SIGTERM is received, the method will return.
+// If SIGHUP is received and a ReloadFunc was passed to New(),
 // the ReloadFunc will be invoked.
 func (m *Manager) WaitForSignals() {
 	signals := make(chan os.Signal, 1)
@@ -18,8 +18,8 @@ wait:
 		sig := <-signals
 		switch sig {
 		case syscall.SIGHUP:
-			if m.configReload != nil {
-				m.configReload()
+			if m.reloadFunc != nil {
+				m.reloadFunc()
 			}
 		default:
 			break wait
