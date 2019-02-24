@@ -4,6 +4,8 @@ ARG BUILD_TIME
 ARG BRANCH
 ARG COMMIT
 
+RUN apk update && apk install git
+
 COPY . /go/src/app
 WORKDIR /go/src/app
 RUN GO111MODULE=on \
