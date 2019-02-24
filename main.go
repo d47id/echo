@@ -8,7 +8,7 @@ import (
 
 	"github.com/d47id/echo/api"
 	"github.com/d47id/echo/impl"
-	"github.com/d47id/echo/lifecycle"
+	"github.com/d47id/lifecycle"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
