@@ -3,7 +3,7 @@ ARG VERSION
 ARG BUILD_TIME
 ARG COMMIT
 
-RUN apk update && apk add git
+RUN apk update && apk add build-base git
 
 COPY . /go/src/app
 WORKDIR /go/src/app
