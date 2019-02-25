@@ -11,7 +11,7 @@ RUN GO111MODULE=on \
 	GOOS=linux \
 	GOARCH=amd64 \
 	go build -o app \
-	-ldflags "-s -w -X github.com/d47id/lifecycle.Version=${VERSION} -X github.com/d47id/lifecycle.buildTime=${BUILD_TIME} -X github.com/d47id/lifecycle.Commit=${COMMIT}"
+	-ldflags "-s -w -X github.com/d47id/lifecycle.Version=${VERSION} -X github.com/d47id/lifecycle.BuildTime=${BUILD_TIME} -X github.com/d47id/lifecycle.Commit=${COMMIT}"
 
 FROM alpine:3.9
 COPY --from=builder /go/src/app/app /
