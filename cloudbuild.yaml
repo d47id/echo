@@ -13,6 +13,8 @@ steps:
     --build-arg
     BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
     --build-arg
+    BRANCH=$BRANCH_NAME
+    --build-arg
     COMMIT=$COMMIT_SHA .
 images:
 - 'gcr.io/$PROJECT_ID/$_APP_NAME:$TAG_NAME'
