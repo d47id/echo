@@ -5,6 +5,14 @@ steps:
   - '-c'
   - >-
     docker
+    pull
+    gcr.io/$PROJECT_ID/$_APP_NAME-builder:latest
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - >-
+    docker
     build
     --tag
     gcr.io/$PROJECT_ID/$_APP_NAME:$TAG_NAME
