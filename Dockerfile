@@ -11,8 +11,8 @@ COPY go.sum .
 RUN GO111MODULE=on go mod download
 
 FROM base-builder as builder
-COPY . /go/src/app
-WORKDIR /go/src/app
+COPY . /src
+WORKDIR /src
 RUN GO111MODULE=on \
 	GOOS=linux \
 	GOARCH=amd64 \
@@ -20,5 +20,5 @@ RUN GO111MODULE=on \
 	-ldflags "-s -w -X github.com/d47id/lifecycle.Version=${VERSION} -X github.com/d47id/lifecycle.BuildTime=${BUILD_TIME} -X github.com/d47id/lifecycle.Branch=${BRANCH} -X github.com/d47id/lifecycle.Commit=${COMMIT}"
 
 FROM alpine:3.9
-COPY --from=builder /go/src/app/app /
+COPY --from=builder /src/app /
 ENTRYPOINT ["/app"]
