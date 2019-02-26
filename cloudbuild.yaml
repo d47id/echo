@@ -8,6 +8,10 @@ steps:
     build
     --tag
     gcr.io/$PROJECT_ID/$_APP_NAME:$TAG_NAME
+    --tag
+    gcr.io/$PROJECT_ID/$_APP_NAME:latest
+    --cache-from
+    gcr.io/$PROJECT_ID/$_APP_NAME-builder:latest
     --build-arg
     VERSION=$TAG_NAME
     --build-arg
