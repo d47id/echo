@@ -25,4 +25,4 @@ run: build
 
 all: build
 
-.PHONY: build
+.PHONY: build run
