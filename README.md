@@ -9,4 +9,3 @@ Requirements:
 * Working gRPC "echo" service
 * gRPC reflection
 * OpenTracing header propagation
-* Config reload via SIGHUP

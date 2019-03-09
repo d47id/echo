@@ -9,6 +9,9 @@ steps:
     --target 
     base-builder
     --tag
+    gcr.io/$PROJECT_ID/$_APP_NAME-builder:$SHORT_SHA
+    --tag
     gcr.io/$PROJECT_ID/$_APP_NAME-builder:latest .
 images:
+- 'gcr.io/$PROJECT_ID/$_APP_NAME-builder:$SHORT_SHA'
 - 'gcr.io/$PROJECT_ID/$_APP_NAME-builder:latest'
