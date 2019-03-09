@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 
 	"github.com/d47id/echo/api"
@@ -13,11 +12,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	yaml "gopkg.in/yaml.v2"
 )
-
-type config struct {
-}
 
 func main() {
 	// Read flags
@@ -43,16 +38,9 @@ func main() {
 	)
 	flag.Parse()
 
-	// Load config
-	data, err := ioutil.ReadFile(*configPath)
-	if err != nil {
-		panic(err)
-	}
-	cfg := &config{}
-	yaml.Unmarshal(data, cfg)
-
 	// Create logger
 	var logger *zap.Logger
+	var err error
 	if *devLogger {
 		logger, err = zap.NewDevelopment()
 	} else {
