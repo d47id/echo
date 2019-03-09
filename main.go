@@ -83,7 +83,7 @@ func main() {
 
 	// Start gRPC server
 	s := grpc.NewServer()
-	api.RegisterEchoServer(s, &impl.EchoImpl{})
+	api.RegisterEchoServer(s, &impl.EchoImpl{Logger: logger})
 	reflection.Register(s)
 	go func(l *zap.Logger, lis net.Listener, s *grpc.Server) {
 		err := s.Serve(lis)
