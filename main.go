@@ -14,9 +14,11 @@ import (
 	"google.golang.org/grpc/reflection"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	// "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
+    // "github.com/opentracing/opentracing-go"
 )
 
 func main() {
@@ -133,3 +135,14 @@ func main() {
 	//wait for signals
 	mgr.WaitForSignals()
 }
+
+// func GetDialOpts() []*grpc.DialOption {
+// 	var opts *grpc.DialOption
+// 	opts = append(opts, grpc.WithStreamInterceptor(
+// 		grpc_opentracing.StreamClientInterceptor(
+// 			grpc_opentracing.WithTracer(ot.GlobalTracer())))
+// 		)
+// 	opts = append(opts, grpc.WithUnaryInterceptor(
+// 		grpc_opentracing.UnaryClientInterceptor(
+// 			grpc_opentracing.WithTracer(ot.GlobalTracer())))))
+// }
