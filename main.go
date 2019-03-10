@@ -12,6 +12,11 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	"github.com/grpc-ecosystem/go-grpc-prometheus"
 )
 
 func main() {
@@ -63,7 +68,7 @@ func main() {
 	mgr := lifecycle.New(logger.Sugar(), nil)
 
 	// Start http server
-	cancel := mgr.StartServer(fmt.Sprintf(":%d", *httpPort), false)
+	cancel := mgr.StartServer(fmt.Sprintf(":%d", *httpPort), true)
 	defer cancel()
 
 	// Start tcp listener
@@ -81,10 +86,32 @@ func main() {
 		l.Info("tcp listener closed")
 	}(logger, lis)
 
-	// Start gRPC server
-	s := grpc.NewServer()
+	// Configure middleware
+	grpc_prometheus.EnableHandlingTimeHistogram()
+	grpc_zap.ReplaceGrpcLogger(logger)
+	s := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			grpc_ctxtags.StreamServerInterceptor(
+				grpc_ctxtags.WithFieldExtractor(
+					grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_prometheus.StreamServerInterceptor,
+			grpc_zap.StreamServerInterceptor(logger),
+			grpc_recovery.StreamServerInterceptor(),
+		)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_ctxtags.UnaryServerInterceptor(
+				grpc_ctxtags.WithFieldExtractor(
+					grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_prometheus.UnaryServerInterceptor,
+			grpc_zap.UnaryServerInterceptor(logger),
+			grpc_recovery.UnaryServerInterceptor(),
+		)),
+	)
 	api.RegisterEchoServer(s, &impl.EchoImpl{Logger: logger})
 	reflection.Register(s)
+	grpc_prometheus.Register(s)
+
+	// Start gRPC server
 	go func(l *zap.Logger, lis net.Listener, s *grpc.Server) {
 		err := s.Serve(lis)
 		if err != nil {
@@ -93,6 +120,7 @@ func main() {
 	}(logger, lis, s)
 	logger.Info("gRPC server started")
 
+	// Stop server on process exit
 	defer func(l *zap.Logger, s *grpc.Server) {
 		s.GracefulStop()
 		l.Info("gRPC server stopped")
