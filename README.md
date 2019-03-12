@@ -9,3 +9,8 @@ Requirements:
 * Working gRPC "echo" service
 * gRPC reflection
 * OpenTracing header propagation
+
+TODO:
+* Implement gRPC health check proto
+* Use ctx zap logger
+* Deprecate lifecycle module

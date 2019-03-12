@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net"
@@ -16,9 +17,9 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	// "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
-    // "github.com/opentracing/opentracing-go"
+    "github.com/opentracing/opentracing-go"
 )
 
 func main() {
@@ -27,6 +28,11 @@ func main() {
 		"config-file",
 		"echo.yaml",
 		"Path to yaml config file",
+	)
+	relayAddr := flag.String(
+		"relay-addr",
+		"",
+		"Relay request through downstream echo server",
 	)
 	grpcPort := flag.Int(
 		"grpc-port",
@@ -93,23 +99,31 @@ func main() {
 	grpc_zap.ReplaceGrpcLogger(logger)
 	s := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-			grpc_ctxtags.StreamServerInterceptor(
-				grpc_ctxtags.WithFieldExtractor(
-					grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_ctxtags.StreamServerInterceptor(),
 			grpc_prometheus.StreamServerInterceptor,
 			grpc_zap.StreamServerInterceptor(logger),
 			grpc_recovery.StreamServerInterceptor(),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			grpc_ctxtags.UnaryServerInterceptor(
-				grpc_ctxtags.WithFieldExtractor(
-					grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_zap.UnaryServerInterceptor(logger),
 			grpc_recovery.UnaryServerInterceptor(),
 		)),
 	)
-	api.RegisterEchoServer(s, &impl.EchoImpl{Logger: logger})
+	
+	// Build api server implementation
+	impl := &impl.EchoImpl{Logger: logger}
+	if *relayAddr != "" {
+		cl, err := getConn(ctx, *relayAddr, logger)
+		if err != nil {
+			panic(err)
+		}
+		impl.Client = cl
+	}
+
+	// Register gRPC services with server
+	api.RegisterEchoServer(s, impl)
 	reflection.Register(s)
 	grpc_prometheus.Register(s)
 
@@ -136,13 +150,20 @@ func main() {
 	mgr.WaitForSignals()
 }
 
-// func GetDialOpts() []*grpc.DialOption {
-// 	var opts *grpc.DialOption
-// 	opts = append(opts, grpc.WithStreamInterceptor(
-// 		grpc_opentracing.StreamClientInterceptor(
-// 			grpc_opentracing.WithTracer(ot.GlobalTracer())))
-// 		)
-// 	opts = append(opts, grpc.WithUnaryInterceptor(
-// 		grpc_opentracing.UnaryClientInterceptor(
-// 			grpc_opentracing.WithTracer(ot.GlobalTracer())))))
-// }
+func getConn(ctx context.Context, addr string, 
+	l *zap.Logger) (*grpc.ClientConn, error) {
+	return grpc.DialContext(ctx, addr,
+		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(
+			grpc_prometheus.StreamClientInterceptor,
+			grpc_zap.StreamClientInterceptor(l),
+			grpc_opentracing.StreamClientInterceptor(
+				grpc_opentracing.WithTracer(opentracing.GlobalTracer())),
+		)),
+		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
+			grpc_prometheus.UnaryClientInterceptor,
+			grpc_zap.UnaryClientInterceptor(l),
+			grpc_opentracing.UnaryClientInterceptor(
+				grpc_opentracing.WithTracer(opentracing.GlobalTracer())),
+		)),
+	)
+}
