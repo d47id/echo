@@ -115,11 +115,11 @@ func main() {
 	// Build api server implementation
 	impl := &impl.EchoImpl{Logger: logger}
 	if *relayAddr != "" {
-		cl, err := getConn(ctx, *relayAddr, logger)
+		cl, err := getConn(context.Background(), *relayAddr, logger)
 		if err != nil {
 			panic(err)
 		}
-		impl.Client = cl
+		impl.Client = api.NewEchoClient(cl)
 	}
 
 	// Register gRPC services with server
