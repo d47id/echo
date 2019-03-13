@@ -61,7 +61,6 @@ func main() {
 
 	logger.Info(
 		"Starting up...",
-		zap.String("config-file", *configPath),
 		zap.Int("grpc-port", *grpcPort),
 		zap.Int("http-port", *httpPort),
 		zap.Bool("dev-logger", *devLogger),
