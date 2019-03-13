@@ -24,11 +24,6 @@ import (
 
 func main() {
 	// Read flags
-	configPath := flag.String(
-		"config-file",
-		"echo.yaml",
-		"Path to yaml config file",
-	)
 	relayAddr := flag.String(
 		"relay-addr",
 		"",
@@ -153,6 +148,7 @@ func main() {
 func getConn(ctx context.Context, addr string, 
 	l *zap.Logger) (*grpc.ClientConn, error) {
 	return grpc.DialContext(ctx, addr,
+		grpc.WithInsecure(),
 		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(
 			grpc_prometheus.StreamClientInterceptor,
 			grpc_zap.StreamClientInterceptor(l),
