@@ -19,9 +19,7 @@ build: api/api.pb.go
 run: build
 	docker run -d --name echo \
 	-p 3000:3000 -p 4000:4000 \
-	-v $(shell pwd):/stuff \
-	echo:$(SHORT_SHA) \
-	--config-file /stuff/echo.yaml
+	echo:latest
 
 all: build
 

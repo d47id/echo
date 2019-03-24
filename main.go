@@ -5,18 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/d47id/echo/api"
 	"github.com/d47id/echo/impl"
-	"github.com/d47id/lifecycle"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -68,13 +63,6 @@ func main() {
 		zap.Bool("dev-logger", *devLogger),
 	)
 
-	// Create lifecycle manager
-	mgr := lifecycle.New(logger.Sugar(), nil)
-
-	// Start http server
-	cancel := mgr.StartServer(fmt.Sprintf(":%d", *httpPort), true)
-	defer cancel()
-
 	// Start tcp listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *grpcPort))
 	if err != nil {
@@ -90,28 +78,13 @@ func main() {
 		l.Info("tcp listener closed")
 	}(logger, lis)
 
-	// Configure middleware
-	grpc_prometheus.EnableHandlingTimeHistogram()
-	grpc_zap.ReplaceGrpcLogger(logger)
-	s := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-			grpc_ctxtags.StreamServerInterceptor(),
-			grpc_prometheus.StreamServerInterceptor,
-			grpc_zap.StreamServerInterceptor(logger),
-			grpc_recovery.StreamServerInterceptor(),
-		)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			grpc_ctxtags.UnaryServerInterceptor(),
-			grpc_prometheus.UnaryServerInterceptor,
-			grpc_zap.UnaryServerInterceptor(logger),
-			grpc_recovery.UnaryServerInterceptor(),
-		)),
-	)
+	// build gRPC server
+	s := newRPCserver(logger)
 
 	// Build api server implementation
 	impl := &impl.EchoImpl{Logger: logger}
 	if *relayAddr != "" {
-		cl, err := getConn(context.Background(), *relayAddr, logger)
+		cl, err := getRPCconn(context.Background(), *relayAddr, logger)
 		if err != nil {
 			panic(err)
 		}
@@ -124,7 +97,6 @@ func main() {
 	// Register gRPC services with server
 	api.RegisterEchoServer(s, impl)
 	reflection.Register(s)
-	grpc_prometheus.Register(s)
 	grpc_health.RegisterHealthServer(s, hlth)
 
 	// Start gRPC server
@@ -142,32 +114,15 @@ func main() {
 		l.Info("gRPC server stopped")
 	}(logger, s)
 
-	// Set ready, healthy
-	mgr.Healthy()
-	mgr.Ready()
+	// Start http server
+	cancel := startHTTPServer(fmt.Sprintf(":%d", *httpPort), logger)
+	defer cancel()
 
 	//wait for signals
-	mgr.WaitForSignals()
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	<-signals
 
 	// set health status to not serving
 	hlth.Shutdown()
-}
-
-func getConn(ctx context.Context, addr string,
-	l *zap.Logger) (*grpc.ClientConn, error) {
-	return grpc.DialContext(ctx, addr,
-		grpc.WithInsecure(),
-		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(
-			grpc_prometheus.StreamClientInterceptor,
-			grpc_zap.StreamClientInterceptor(l),
-			grpc_opentracing.StreamClientInterceptor(
-				grpc_opentracing.WithTracer(opentracing.GlobalTracer())),
-		)),
-		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
-			grpc_prometheus.UnaryClientInterceptor,
-			grpc_zap.UnaryClientInterceptor(l),
-			grpc_opentracing.UnaryClientInterceptor(
-				grpc_opentracing.WithTracer(opentracing.GlobalTracer())),
-		)),
-	)
 }
