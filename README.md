@@ -9,6 +9,3 @@ Features:
 * Working gRPC "echo" service
 * Relay support
 * Graceful shutdown
-
-TODO:
-* Use ctx zap logger
