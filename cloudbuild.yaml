@@ -18,6 +18,10 @@ steps:
     gcr.io/$PROJECT_ID/$_APP_NAME:$TAG_NAME
     --tag
     gcr.io/$PROJECT_ID/$_APP_NAME:latest
+    --tag
+    d47id/echo:$TAG_NAME
+    --tag
+    d47id/echo:latest
     --cache-from
     gcr.io/$PROJECT_ID/$_APP_NAME-builder:latest
     --build-arg
@@ -28,5 +32,23 @@ steps:
     BRANCH=$BRANCH_NAME
     --build-arg
     COMMIT=$COMMIT_SHA .
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - >-
+    docker
+    login 
+    --username=d47id
+    --password=$$DOCKER_PASSWORD
+  secretEnv: ['DOCKER_PASSWORD']
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+  - 'push'
+  - 'd47id/echo'
 images:
-- 'gcr.io/$PROJECT_ID/$_APP_NAME:$TAG_NAME'
+- 'gcr.io/$PROJECT_ID/$_APP_NAME'
+secrets:
+- kmsKeyName: projects/d47id-go/locations/global/keyRings/build-creds/cryptoKeys/build-key
+  secretEnv:
+      DOCKER_PASSWORD: CiQA5DoRXY59yAqRnkIBfeUSjmgM6LzgEVogiCzwI0YszFUSsuISOgD9gD0s9OFnFANkePPIkW7OYqVhtL+ZHYikSMAan+gEa5daZ46QyBptyGpU8YYWwJ0wC3c7r9tFbwo=
