@@ -40,7 +40,7 @@ steps:
     docker
     login 
     --username=d47id
-    --password=${DOCKER_PASSWORD}
+    --password=$$DOCKER_PASSWORD
   secretEnv: ['DOCKER_PASSWORD']
 - name: 'gcr.io/cloud-builders/docker'
   args:
