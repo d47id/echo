@@ -49,6 +49,6 @@ steps:
 images:
 - 'gcr.io/$PROJECT_ID/$_APP_NAME'
 secrets:
-- kmsKeyName: projects/$PROJECT_ID/locations/global/keyRings/build-creds/cryptoKeys/build-key
+- kmsKeyName: projects/d47id-go/locations/global/keyRings/build-creds/cryptoKeys/build-key
   secretEnv:
       DOCKER_PASSWORD: CiQA5DoRXY59yAqRnkIBfeUSjmgM6LzgEVogiCzwI0YszFUSsuISOgD9gD0s9OFnFANkePPIkW7OYqVhtL+ZHYikSMAan+gEa5daZ46QyBptyGpU8YYWwJ0wC3c7r9tFbwo=
