@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/d47id/echo/api"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
-
-	"github.com/d47id/echo/api"
 )
 
 func TestEchoImpl(t *testing.T) {
@@ -96,7 +96,7 @@ func startTestServer(
 	return api.NewEchoClient(conn), getCancelFunc(lis, s, conn, t)
 }
 
-func getCancelFunc(lis net.Listener, s *grpc.Server,
+func getCancelFunc(lis *bufconn.Listener, s *grpc.Server,
 	conn *grpc.ClientConn, t *testing.T) func() {
 	return func() {
 		err := conn.Close()

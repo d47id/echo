@@ -10,16 +10,18 @@ import (
 	"github.com/d47id/echo/impl"
 	"github.com/d47id/lifecycle"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	grpc_health "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	"github.com/grpc-ecosystem/go-grpc-prometheus"
-    "github.com/opentracing/opentracing-go"
 )
 
 func main() {
@@ -105,7 +107,7 @@ func main() {
 			grpc_recovery.UnaryServerInterceptor(),
 		)),
 	)
-	
+
 	// Build api server implementation
 	impl := &impl.EchoImpl{Logger: logger}
 	if *relayAddr != "" {
@@ -116,10 +118,14 @@ func main() {
 		impl.Client = api.NewEchoClient(cl)
 	}
 
+	// Create health server
+	hlth := health.NewServer()
+
 	// Register gRPC services with server
 	api.RegisterEchoServer(s, impl)
 	reflection.Register(s)
 	grpc_prometheus.Register(s)
+	grpc_health.RegisterHealthServer(s, hlth)
 
 	// Start gRPC server
 	go func(l *zap.Logger, lis net.Listener, s *grpc.Server) {
@@ -142,9 +148,12 @@ func main() {
 
 	//wait for signals
 	mgr.WaitForSignals()
+
+	// set health status to not serving
+	hlth.Shutdown()
 }
 
-func getConn(ctx context.Context, addr string, 
+func getConn(ctx context.Context, addr string,
 	l *zap.Logger) (*grpc.ClientConn, error) {
 	return grpc.DialContext(ctx, addr,
 		grpc.WithInsecure(),
